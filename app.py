@@ -23,7 +23,7 @@ except Exception as e:
 
 @app.get("/")
 def home():
-    return "Hello from Python WebApp 🚀"
+    return "Hello from Python WebApp 🚀. CI-CD"
 
 @app.get("/healthz")
 def healthz():
@@ -59,4 +59,5 @@ def create_item():
 if __name__ == "__main__":
     # Dev server (use gunicorn in Docker)
     app.run(host="0.0.0.0", port=PORT)
+
 
