@@ -1,40 +1,55 @@
 pipeline {
   agent any
 
+  environment {
+    // Compose project name so containers are predictable
+    COMPOSE_PROJECT = "webapp"
+    HEALTH_URL      = "http://localhost/healthz"
+  }
+
+  options {
+    timestamps()
+  }
+
   stages {
     stage('Checkout') {
+      steps { checkout scm }
+    }
+
+    stage('Build & Up via Compose') {
       steps {
-        // EITHER use the job SCM:
-        checkout scm
-        // OR comment the above and use explicit git:
-        // git branch: 'main', url: 'https://github.com/SaniyaParasara/webapp.git'
+        sh """
+          docker compose -p ${COMPOSE_PROJECT} down || true
+          docker compose -p ${COMPOSE_PROJECT} up -d --build
+        """
       }
     }
 
-    stage('Build') {
+    stage('Smoke Test') {
       steps {
-        echo 'Building the application...'
-        // sh 'docker build -t webapp:latest .'
-      }
-    }
-
-    stage('Test') {
-      steps {
-        echo 'Running tests...'
-        // sh 'docker run --rm webapp:latest npm test'
-      }
-    }
-
-    stage('Deploy') {
-      steps {
-        echo 'Deploying application...'
-        // sh 'docker run -d -p 3000:3000 --name webapp webapp:latest'
+        sh """
+          echo "Waiting for app..."
+          for i in {1..20}; do
+            if curl -fsS ${HEALTH_URL} | grep -q '"ok"'; then
+              echo "Health OK"; exit 0
+            fi
+            sleep 2
+          done
+          echo "Health check failed"
+          exit 1
+        """
       }
     }
   }
 
   post {
-    success { echo 'Pipeline completed successfully!' }
-    failure { echo 'Pipeline failed. check logs.' }
+    success {
+      echo "✅ Deployed via Compose. Health OK."
+      sh "docker compose -p ${COMPOSE_PROJECT} ps"
+    }
+    failure {
+      echo "❌ Deployment failed. Recent web logs:"
+      sh "docker logs webapp_live || true"
+    }
   }
 }
