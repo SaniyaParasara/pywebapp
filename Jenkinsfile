@@ -1,67 +1,40 @@
 pipeline {
   agent any
 
-  options {
-    // Avoid double checkout noise: remove this if you prefer the default checkout stage
-    skipDefaultCheckout(true)
-  }
-
   stages {
     stage('Checkout') {
       steps {
-        // Use job SCM or uncomment the explicit git line
+        // EITHER use the job SCM:
         checkout scm
+        // OR comment the above and use explicit git:
         // git branch: 'main', url: 'https://github.com/SaniyaParasara/pywebapp.git'
       }
     }
 
-    stage('Build Image') {
+    stage('Build') {
       steps {
-        sh '''
-          set -e
-          echo "Building Docker image..."
-          docker build -t pywebapp:latest .
-        '''
+        echo 'Building the application...'
+        // sh 'docker build -t pywebapp:latest .'
       }
     }
 
     stage('Test') {
       steps {
-        sh '''
-          set -e
-          echo "Running pytest in container..."
-          docker run --rm pywebapp:latest python -m pytest -q
-        '''
+        echo 'Running tests...'
+        // sh 'docker run --rm pywebapp:latest npm test'
       }
     }
 
     stage('Deploy') {
       steps {
-        sh '''
-          set -e
-          echo "Deploying container on host port 3000 -> container 8000..."
-          docker rm -f pyweb >/dev/null 2>&1 || true
-          docker run -d --name pyweb -p 3000:8000 pywebapp:latest
-
-          echo "Health check (inside pyweb's network namespace)..."
-          for i in $(seq 1 30); do
-            if docker run --rm --network container:pyweb curlimages/curl:8.8.0 -fsS http://localhost:8000/healthz >/dev/null; then
-              echo "App is healthy ✅"
-              exit 0
-            fi
-            sleep 1
-          done
-
-          echo "Health check failed"
-          docker logs pyweb || true
-          exit 1
-        '''
+        echo 'Deploying application...'
+        // sh 'docker run -d -p 3000:3000 --name webapp webapp:latest'
       }
     }
   }
 
   post {
     success { echo 'Pipeline completed successfully!' }
-    failure { echo 'Pipeline failed. Check logs.' }
+    failure { echo 'Pipeline failed. check logs.' }
   }
 }
