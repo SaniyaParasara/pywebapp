@@ -1,7 +1,8 @@
-version: "3"
+version: "3.8"
 services:
   web:
     build: .
+    container_name: webapp_live
     ports:
       - "80:8000"
     environment:
@@ -9,8 +10,16 @@ services:
       - MONGO_URL=mongodb://db:27017/webapp
     depends_on:
       - db
+    restart: unless-stopped
+
   db:
     image: mongo:6
-    restart: always
+    container_name: webapp_mongo
+    restart: unless-stopped
     ports:
       - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+
+volumes:
+  mongo_data:
