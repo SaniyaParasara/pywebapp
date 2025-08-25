@@ -1,0 +1,16 @@
+version: "3"
+services:
+  web:
+    build: .
+    ports:
+      - "80:8000"
+    environment:
+      - PORT=8000
+      - MONGO_URL=mongodb://db:27017/webapp
+    depends_on:
+      - db
+  db:
+    image: mongo:6
+    restart: always
+    ports:
+      - "27017:27017"
