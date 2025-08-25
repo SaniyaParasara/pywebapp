@@ -1,40 +1,23 @@
 pipeline {
   agent any
-
   stages {
-    stage('Checkout') {
-      steps {
-        // EITHER use the job SCM:
-        checkout scm
-        // OR comment the above and use explicit git:
-        // git branch: 'main', url: 'https://github.com/SaniyaParasara/pywebapp.git'
+    stage('Checkout') { steps { checkout scm } } // keep if you use job SCM
+    stage('Docker Build & Run') {
+      environment {
+        IMAGE = 'webapp:local'
+        CNAME = 'webapp'
+        APP_PORT = '8000' // match your Dockerfile/app port
       }
-    }
-
-    stage('Build') {
       steps {
-        echo 'Building the application...'
-        // sh 'docker build -t webapp:latest .'
-      }
-    }
-
-    stage('Test') {
-      steps {
-        echo 'Running tests...'
-        // sh 'docker run --rm webapp:latest npm test'
-      }
-    }
-
-    stage('Deploy') {
-      steps {
-        echo 'Deploying application...'
-        // sh 'docker run -d -p 3000:3000 --name webapp webapp:latest'
+        sh '''
+          docker rm -f ${CNAME} || true
+          docker build -t ${IMAGE} .
+          docker run -d --name ${CNAME} -p ${APP_PORT}:${APP_PORT} ${IMAGE}
+        '''
       }
     }
   }
-
   post {
-    success { echo 'Pipeline completed successfully!' }
-    failure { echo 'Pipeline failed. check logs.' }
+    success { echo "Running at http://localhost:${APP_PORT}" }
   }
 }
